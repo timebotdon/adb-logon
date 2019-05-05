@@ -45,7 +45,6 @@ function adb-logon {
 		
 
 	# If "authorized.db" file is not found, create a new one a register currently connected device to it.
-	# Create a new task schedule
 	function setup {
 		$dev = ((adb.exe devices)[1] -split '\s' | Select-String -notmatch "device").tostring();
 		write-output $dev > authorized.db
