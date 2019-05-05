@@ -17,6 +17,7 @@ function adb-logon {
 	
 .NOTES
 	Author:			Donovan Choy (https://github.com/timebotdon)
+	Version:		R1.1
 	License:		BSD 3-Clause
 	Dependencies:	ADB platform tools & PowerShell v2+
 	
