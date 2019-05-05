@@ -1,4 +1,4 @@
-# adb-logon
+# adb-logon ver.1
 Physical 2FA token via ADB.
 
 # Description
@@ -30,3 +30,10 @@ file as a whitelisted device when running the script for the first time.
 1. Start powershell with execution policy bypass from the directory containing adb-logon.ps1.
 2. Import the powershell module
 3. Run the module with adb-logon
+
+# Todo
+* r1.2 - Logging / Auditing
+* r1.3 - Auto-add scheduled task to import and run this module on user login
+* r1.4 - Send email on authentication failure
+* v2.1 - ADB over TCP
+* v3.0 - Android App to receive notifications instead of messaging app
