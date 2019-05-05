@@ -34,6 +34,8 @@ file as a whitelisted device when running the script for the first time.
 # Todo
 * r1.2 - Logging / Auditing
 * r1.3 - Auto-add scheduled task to import and run this module on user login
-* r1.4 - Send email on authentication failure
+* r1.4 - Lock workstation and run script when device is unplugged.
+* r1.5 - Send email on authentication failure
+* r1.6 - Password logon
 * v2.1 - ADB over TCP
 * v3.0 - Android App to receive notifications instead of messaging app
