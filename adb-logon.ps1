@@ -139,7 +139,7 @@ function adb-logon {
 		$resendbtn = New-Object System.Windows.Forms.Button
 		$resendbtn.Location = New-Object System.Drawing.Size(110,90)
 		$resendbtn.Size = New-Object System.Drawing.Size(60,25)
-		$resendbtn.Text = "Send OTP"
+		$resendbtn.Text = "Resend"
 		$resendbtn.add_click({
 			write-host "ADB-LOGON: Resending OTP.."
 			sendOTP
