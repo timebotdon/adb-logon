@@ -1,4 +1,4 @@
-# adb-logon ver.1
+# adb-logon r1.1
 Physical 2FA token via ADB.
 
 # Description
