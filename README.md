@@ -31,11 +31,11 @@ file as a whitelisted device when running the script for the first time.
 2. Import the powershell module
 3. Run the module with adb-logon
 
-# Todo
+# Future Features
 * r1.2 - Logging / Auditing
 * r1.3 - Auto-add scheduled task to import and run this module on user login
 * r1.4 - Lock workstation and run script when device is unplugged.
 * r1.5 - Send email on authentication failure
 * r1.6 - Password logon
-* v2.1 - ADB over TCP
-* v3.0 - Android App to receive notifications instead of messaging app
+* r2.1 - ADB over TCP
+* r3.0 - Android App to receive notifications instead of messaging app
