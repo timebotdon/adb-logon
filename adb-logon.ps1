@@ -35,11 +35,13 @@ function adb-logon {
 	Github: https://github.com/timebotdon/adb-logon
 #>
 
+
 	# Auto elevates to administrator with a UAC prompt.
 	function elevateUAC {
 		if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
 			Write-Host "This script requires administrator rights. Auto elevating in 5 seconds.."
-			powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+			Start-sleep 5
+			Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
 			exit
 		}
 	}
@@ -82,12 +84,14 @@ function adb-logon {
 		$chkauth2 = $2authbox.text
 		if (($chkauth1 -eq $sec1) -and ($chkauth2 -eq $sec2)) {
 			write-host "ADB-LOGON: Success"
+			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3000 -EntryType SuccessAudit -Message "Authentication Successful."
 			disableSec
 			explorer.exe
 			$mainwindow.close()
 		}
 		else {
 			write-host "ADB-LOGON: Failed"
+			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3001 -EntryType FailureAudit -Message "Authentication Failed."
 			enableSec
 			$mainwindow.close()
 			shutdown /l
@@ -143,6 +147,7 @@ function adb-logon {
 		$resendbtn.add_click({
 			write-host "ADB-LOGON: Resending OTP.."
 			sendOTP
+			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "OTP resent to device."
 		})
 		$mainwindow.Controls.Add($resendbtn)
 
@@ -195,13 +200,18 @@ function adb-logon {
 			}
 			else {
 				if ($dev -eq $null) {
-					write-host "ADB-LOGON: Device is NOT connected"
+					#write-host "ADB-LOGON: Device is not connected"
+					write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Device not connected"
+					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3002 -EntryType Warning -Message "Device is not connected."
 					enableSec
 				}
 				else {
-					write-host "ADB-LOGON: Failed"
+					#write-host "ADB-LOGON: Logon Failed"
+					write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Logon failed"
+					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3001 -EntryType FailureAudit -Message "Authentication Failed."
 					enableSec
 					shutdown /l
+					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3004 -EntryType Information -Message "User $env:Username is being logged off."
 					$mainwindow.Close()
 				}
 			}
