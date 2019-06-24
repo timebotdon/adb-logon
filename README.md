@@ -2,16 +2,17 @@
 Physical 2FA token via ADB.
 
 # Description
-Adb-logon is a PoC Powershell module that turns a USB connected Android
-device into a physical 2FA token via ADB. This script disables the
-task manager, utility manager and kills	Windows Explorer when executed.
-It DOES NOT take into account personalized startup programs however.
-A randomized OTP will be generated and sent to the Android device's SMS app.
-Successful authentication enables the programs as mentioned.
-Failure to authenticate logs off the user.
+Adb-logon is a PoC Powershell module that adds an additional layer of Desktop security
+by turning a USB connected Android device into a physical 2FA token.
+This script disables the task manager, utility manager and kills
+Windows Explorer when executed. It DOES NOT take into account personalized
+startup programs however. A randomized OTP will be generated and sent to the
+Android device's SMS app via the Android Debug Bridge. Successful authentication
+enables the programs as mentioned. Failure to authenticate logs off the user.
 	
 As an additional security feature, the device identifier is recorded to a
-file as a whitelisted device when running the script for the first time.
+file as a whitelisted device when running the script for the first time. Devices connected
+to the machine that does not match the whitelisted ID is automatically kicked / forced logoff.
 
 # Requirements
 * Requires administrative rights due to the adding/removing of registry keys.
@@ -30,6 +31,25 @@ file as a whitelisted device when running the script for the first time.
 1. Start powershell with execution policy bypass from the directory containing adb-logon.ps1.
 2. Import the powershell module
 3. Run the module with adb-logon
+
+## Event Logging
+Information
+* 100 - adb-logon started
+* 101 - Device connected
+* 102 - Device disconnected
+* 103 - OTP generated
+* 104 - OTP sent to device
+* 105 - New device registered
+* 106 - No devices detected
+* 107 - Unrecognized device
+Audit
+* 110 - Authentication Successful
+* 111 - Authentication Failure
+* 112 - Security Enabled
+* 113 - Security Disabled
+* 114 - Self Protect: Force user logoff
+* 115 - Self Protect: Alert via Email
+
 
 # Future Features
 * r1.2 - Logging / Auditing

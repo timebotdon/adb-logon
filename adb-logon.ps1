@@ -17,7 +17,7 @@ function adb-logon {
 	
 .NOTES
 	Author:			Donovan Choy (https://github.com/timebotdon)
-	Version:		R1.1
+	Version:		R1.2
 	License:		BSD 3-Clause
 	Dependencies:	ADB platform tools & PowerShell v2+
 	
@@ -47,8 +47,10 @@ function adb-logon {
 	}
 		
 
-	# If "authorized.db" file is not found, create a new one a register currently connected device to it.
-	function setup {
+	# If "authorized.db" file is not found, create a new one and register currently connected device to it.
+	function firstSetup {
+		
+		New-EventLog -source adbLogon -LogName adbLogon -MessageResourceFile "C:\Program Files\adb-logon\eventlog.dll"
 		$dev = ((adb.exe devices)[1] -split '\s' | Select-String -notmatch "device").tostring();
 		write-output $dev > authorized.db
 		write-host "Registered new device: $dev"
@@ -66,15 +68,19 @@ function adb-logon {
 
 	# Enables task manager, removes utility manager debugger registry key.
 	function disableSec {
+		Start-Process -Name explorer.exe
 		REG add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 0 /f
 		REG delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /f
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "Security Disabled."
 	}
 
 
 	# Disables task manager, adds utility manager debugger registry key.
 	function enableSec {
+		Stop-Process -Name explorer.exe
 		REG add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f
 		REG add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /f
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "Security Enabled."
 	}
 
 
@@ -182,9 +188,8 @@ function adb-logon {
 	# init
 	function init {
 		elevateUAC
-		$chk = Test-Path authorized.db
-		if ($chk -ne "True") {
-			setup
+		if ((Test-Path authorized.db) -ne "True") {
+			firstSetup
 			enableSec
 			sendOTP
 			main
@@ -193,7 +198,7 @@ function adb-logon {
 			$authorizedDev = get-content authorized.db
 			$dev = ((adb.exe devices)[1] -split '\s' | Select-String -notmatch "device").tostring();
 			if ($dev -eq $authorizedDev) {
-				Stop-Process -Name explorer
+				
 				enableSec
 				sendOTP
 				main
