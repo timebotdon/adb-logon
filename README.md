@@ -42,13 +42,13 @@ Information
 * 105 - New device registered
 * 106 - No devices detected
 * 107 - Unrecognized device
+* 108 - Security Enabled
+* 109 - Security Disabled
+* 110 - Force user logoff
+* 111 - Alert via Email
 Audit
-* 110 - Authentication Successful
-* 111 - Authentication Failure
-* 112 - Security Enabled
-* 113 - Security Disabled
-* 114 - Self Protect: Force user logoff
-* 115 - Self Protect: Alert via Email
+* 200 - Authentication Successful
+* 201 - Authentication Failure
 
 
 # Future Features

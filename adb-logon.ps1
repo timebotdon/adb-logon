@@ -63,6 +63,7 @@ function adb-logon {
 		$global:sec2=get-random -min 0 -max 99999
 		$vc="$sec1-$sec2"
 		adb.exe -s $dev shell am start -a android.intent.action.SENDTO -d sms: --es sms_body "YOUR VERIFICATION CODE IS $vc" > $null
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 104 -EntryType Information -Message "OTP sent to device."
 	}
 
 
@@ -71,7 +72,7 @@ function adb-logon {
 		Start-Process -Name explorer.exe
 		REG add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 0 /f
 		REG delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /f
-		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "Security Disabled."
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 113 -EntryType Information -Message "Security Disabled."
 	}
 
 
@@ -80,27 +81,39 @@ function adb-logon {
 		Stop-Process -Name explorer.exe
 		REG add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f
 		REG add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /f
-		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "Security Enabled."
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 112 -EntryType Information -Message "Security Enabled."
 	}
 
+
+	function failAuth {
+		write-host "ADB-LOGON: Failed"
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 111 -EntryType FailureAudit -Message "Authentication Failed."
+		enableSec
+		$mainwindow.close()
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 114 -EntryType FailureAudit -Message "Force User logoff."
+		shutdown /l	
+	}
+	
+	
+	Function succAuth {
+		write-host "ADB-LOGON: Success"
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 110 -EntryType SuccessAudit -Message "Authentication Successful."
+		disableSec
+		explorer.exe
+		$mainwindow.close()
+	}
+	
+	
 
 	# Compares textbox input values to the generated values.
 	function verify {
 		$chkauth1 = $1authbox.text
 		$chkauth2 = $2authbox.text
 		if (($chkauth1 -eq $sec1) -and ($chkauth2 -eq $sec2)) {
-			write-host "ADB-LOGON: Success"
-			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3000 -EntryType SuccessAudit -Message "Authentication Successful."
-			disableSec
-			explorer.exe
-			$mainwindow.close()
+			succAuth
 		}
 		else {
-			write-host "ADB-LOGON: Failed"
-			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3001 -EntryType FailureAudit -Message "Authentication Failed."
-			enableSec
-			$mainwindow.close()
-			shutdown /l
+			failAuth
 		}
 	}
 
@@ -153,7 +166,6 @@ function adb-logon {
 		$resendbtn.add_click({
 			write-host "ADB-LOGON: Resending OTP.."
 			sendOTP
-			Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3003 -EntryType Information -Message "OTP resent to device."
 		})
 		$mainwindow.Controls.Add($resendbtn)
 
@@ -172,7 +184,7 @@ function adb-logon {
 		$okbtn = New-Object System.Windows.Forms.Button
 		$okbtn.Location = New-Object System.Drawing.Size(75,120)
 		$okbtn.Size = New-Object System.Drawing.Size(60,30)
-		$okbtn.Text = "Ok"
+		$okbtn.Text = "OK"
 		$okbtn.add_click({
 			verify
 		})
@@ -183,6 +195,7 @@ function adb-logon {
 			$mainwindow.Activate()
 		})
 		$mainwindow.ShowDialog()
+		Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 100 -EntryType Information -Message "adb-logon started."
 	}
 
 	# init
@@ -206,18 +219,19 @@ function adb-logon {
 			else {
 				if ($dev -eq $null) {
 					#write-host "ADB-LOGON: Device is not connected"
-					write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Device not connected"
+					#write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Device not connected"
 					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3002 -EntryType Warning -Message "Device is not connected."
 					enableSec
 				}
 				else {
+					failAuth
 					#write-host "ADB-LOGON: Logon Failed"
-					write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Logon failed"
-					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3001 -EntryType FailureAudit -Message "Authentication Failed."
-					enableSec
-					shutdown /l
-					Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3004 -EntryType Information -Message "User $env:Username is being logged off."
-					$mainwindow.Close()
+					#write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,Logon failed"
+					#Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3001 -EntryType FailureAudit -Message "Authentication Failed."
+					#enableSec
+					#shutdown /l
+					#Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 3004 -EntryType Information -Message "User $env:Username is being logged off."
+					#$mainwindow.Close()
 				}
 			}
 		}
