@@ -52,9 +52,9 @@ Audit
 * 203 - Security disabled
 
 # Future Features
-* r1.3 - Auto-add scheduled task to import and run this module on user login
+* r1.3 - Auto-add scheduled task to run this script on user login
 * r1.4 - Lock workstation and run script when device is unplugged.
-* r1.5 - Send email on authentication failure
+* r1.5 - Send an email alert on authentication failure
 * r1.6 - Password logon
-* r2.1 - ADB over TCP
-* r3.0 - Android App to receive notifications instead of messaging app
+* r1.7 - ADB over TCP
+* r2.0 - Android App to receive notifications instead of messaging app
