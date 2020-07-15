@@ -26,7 +26,7 @@ Dependencies:	ADB platform tools & PowerShell v2+
 * Disabling / Enabling the utility manager is done through the IEFO utilman.exe registry key.
   Depending on your use case, you may want to disable this by commenting out any REG add / delete
   commands related to this key. Windows 10 may automatically remove this key however.
-  
+
 .EXAMPLE
 C:\PS> adb-logon
 
@@ -35,33 +35,53 @@ Github: https://github.com/timebotdon/adb-logon
 #>
 
 # Auto elevates to administrator with a UAC prompt.
+
+Function defineEventIDs {
+
+
+
+
+}
+
 Function elevateUAC {
 	if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
 		Write-Host "This script requires administrator rights. Auto elevating in 5 seconds.."
 		Start-sleep 5
 		Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
-		exit
+	}
+}
+
+#Function SetupLogonService {
+#}
+
+Function installAdblogon {
+	#Setup installation folder
+	$currentPath = $(pwd).path
+	$installPath = "C:\adb-logon"
+	if ((Test-Path $installPath) -ne "True") {
+		mkdir $installPath
+		Copy-Item $currentPath\adb-logon.ps1 $installPath
+		# new logsource
+		#New-EventLog -source AdbLogon -LogName AdbLogon -MessageResourceFile $installPath\events.dll
+		#Write-EventLog -source AdbLogon -LogName AdbLogon -EventID 105 -EntryType Information -Message "AdbLogon Installed"
 	}
 }
 
 
 # If "authorized.db" is not found, create a new one and register currently connected device to it.
-Function firstSetup {
-	New-EventLog -source adbLogon -LogName adbLogon -MessageResourceFile "C:\Program Files\adb-logon\eventlog.dll"
+Function newDevice {
 	$global:dev = ((.\adb devices)[1] -split '\s' | Select-String -notmatch "device").tostring();
 	write-output $dev > authorized.db
-	write-host "DEBUG: Registered new device $dev"
 	write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,$dev,105,info,New device registered" >> audit.log
+	#Write-EventLog -source AdbLogon -LogName AdbLogon -EventID 105 -EntryType Information -Category None -Message "New device ID $dev was registered"
 }
 
 
 # Generate random values and send them to Android Messaging app
 Function sendOTP {
-	$global:sec1=get-random -min 0 -max 99999
-	$global:sec2=get-random -min 0 -max 99999
-	$vc="$sec1-$sec2"
+	$global:otp=( (1..6) | ForEach-Object { Get-Random -Minimum 0 -Maximum 9 } ) -join ''
 	write-host "DEBUG: Sending OTP to $dev .."
-	.\adb -s $dev shell am start -a android.intent.action.SENDTO -d sms: --es sms_body "$vc" >> $null
+	.\adb -s $dev shell am start -a android.intent.action.SENDTO -d sms: --es sms_body "$otp" >> $null
 	write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,$dev,104,info,OTP sent to device" >> audit.log
 }
 
@@ -90,7 +110,7 @@ Function failAuth {
 	enableSec
 	$mainwindow.close()
 	Write-EventLog -LogName "Application" -Source "adb-logon" -EventID 107 -EntryType Information -Message "Forced user logoff."
-	shutdown /l	
+	#shutdown /l
 }
 
 
@@ -105,9 +125,8 @@ Function succAuth {
 
 # Compares textbox input values to the generated values.
 Function verify {
-	$chkauth1 = $1authbox.text
-	$chkauth2 = $2authbox.text
-	if (($chkauth1 -eq $sec1) -and ($chkauth2 -eq $sec2)) {
+	$chkauth = $authbox.text
+	if ($chkauth -eq $otp) {
 		succAuth
 		write-host DEBUG: success
 	} else {
@@ -118,7 +137,7 @@ Function verify {
 
 
 # main window
-Function main {
+Function mainUi {
 	Add-Type -AssemblyName System.Windows.Forms
 	$mainwindow = New-Object Windows.Forms.Form
 	$mainwindow.text = "Security Authentication"
@@ -131,41 +150,30 @@ Function main {
 
 
 	$headerlabel = New-Object System.Windows.Forms.Label
-	$headerlabel.Location = New-Object System.Drawing.Size(10,6) 
-	$headerlabel.Size = New-Object System.Drawing.Size(200,40) 
+	$headerlabel.Location = New-Object System.Drawing.Size(10,6)
+	$headerlabel.Size = New-Object System.Drawing.Size(200,40)
 	$headerlabel.Text = "Please authenticate with OTP. Click 'Send OTP' to proceed."
-	
-
-	$1authlabel = New-Object System.Windows.Forms.Label
-	$1authlabel.Location = New-Object System.Drawing.Size(10,50) 
-	$1authlabel.Size = New-Object System.Drawing.Size(90,20) 
-	$1authlabel.Text = "OTP1"
-	
-
-	$1authbox = New-Object System.Windows.Forms.TextBox 
-	$1authbox.Location = New-Object System.Drawing.Size(10,70) 
-	$1authbox.Size = New-Object System.Drawing.Size(130,20) 		
-	
-
-	$2authlabel = New-Object System.Windows.Forms.Label
-	$2authlabel.Location = New-Object System.Drawing.Size(140,50) 
-	$2authlabel.Size = New-Object System.Drawing.Size(90,20) 
-	$2authlabel.Text = "OTP2"
-
-	
-	$2authbox = New-Object System.Windows.Forms.TextBox 
-	$2authbox.Location = New-Object System.Drawing.Size(140,70) 
-	$2authbox.Size = New-Object System.Drawing.Size(130,20)
 
 
-	$resendbtn = New-Object System.Windows.Forms.Button
-	$resendbtn.Location = New-Object System.Drawing.Size(110,90)
-	$resendbtn.Size = New-Object System.Drawing.Size(60,25)
-	$resendbtn.Text = "Send OTP"
-	$resendbtn.Add_click({
+	$authlabel = New-Object System.Windows.Forms.Label
+	$authlabel.Location = New-Object System.Drawing.Size(10,50)
+	$authlabel.Size = New-Object System.Drawing.Size(90,20)
+	$authlabel.Text = "OTP"
+
+
+	$authbox = New-Object System.Windows.Forms.TextBox
+	$authbox.Location = New-Object System.Drawing.Size(10,70)
+	$authbox.Size = New-Object System.Drawing.Size(130,20)
+
+
+	$sendbtn = New-Object System.Windows.Forms.Button
+	$sendbtn.Location = New-Object System.Drawing.Size(110,90)
+	$sendbtn.Size = New-Object System.Drawing.Size(60,25)
+	$sendbtn.Text = "Send OTP"
+	$sendbtn.Add_click({
 		sendOTP
 	})
-	
+
 
 	$cancelbtn = New-Object System.Windows.Forms.Button
 	$cancelbtn.Location = New-Object System.Drawing.Size(150,120)
@@ -175,8 +183,8 @@ Function main {
 		failAuth
 		$mainwindow.close()
 	})
-	
-	
+
+
 	$okbtn = New-Object System.Windows.Forms.Button
 	$okbtn.Location = New-Object System.Drawing.Size(75,120)
 	$okbtn.Size = New-Object System.Drawing.Size(60,30)
@@ -184,17 +192,15 @@ Function main {
 	$okbtn.Add_click({
 		verify
 	})
-	
+
 	$mainwindow.Controls.Add($headerlabel)
-	$mainwindow.Controls.Add($1authlabel)
-	$mainwindow.Controls.Add($1authbox)
-	$mainwindow.Controls.Add($2authlabel)
-	$mainwindow.Controls.Add($2authbox)
-	$mainwindow.Controls.Add($resendbtn)
+	$mainwindow.Controls.Add($authlabel)
+	$mainwindow.Controls.Add($authbox)
+	$mainwindow.Controls.Add($sendbtn)
 	$mainwindow.Controls.Add($cancelbtn)
 	$mainwindow.Controls.Add($okbtn)
 	write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,$dev,100,info,adb-logon started" >> audit.log
-	
+
 	$mainwindow.Add_Shown({
 		$mainwindow.Activate()
 	})
@@ -205,19 +211,22 @@ Function main {
 # init
 Function init {
 	elevateUAC
-	if ((Test-Path authorized.db) -ne "True") {
-		enableSec
-		firstSetup
-		main
+	# If authorized.db does not exist, create a new database and enable security
+	if ((Test-Path "C:\Program Files\adb-logon\authorized.db") -ne "True") {
+		#enableSec
+		newDevice
+		mainUi
 	} else {
+		# Compare current device ID to registered device ID in authorized.db
 		$authorizedDev = get-content authorized.db
 		$dev = ((.\adb devices)[1] -split '\s' | Select-String -notmatch "device").tostring();
+		# If content matches to current device, disable security
 		if ($dev -eq $authorizedDev) {
-			main
+			#disableSec
 		} else {
 			write-output "$(get-date -format "dd-MM-yyyy,HH:mm:ss"),$env:UserDomain\$env:UserName,$dev,106,info,Unrecognized device" >> audit.log
 			write-host "DEBUG: Unrecognized device. Quitting."
-			enableSec
+			#enableSec
 		}
 	}
 }
